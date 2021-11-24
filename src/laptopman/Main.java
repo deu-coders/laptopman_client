@@ -79,16 +79,30 @@ public class Main extends JFrame {
 		dbc.addComboBox(Combo_query,comboBox);
 		
 		JLabel GPU_label = new JLabel("GPU");
-		GPU_label.setBounds(180, 15, 150, 20);
+		GPU_label.setBounds(190, 15, 150, 20);
 		Page.add(GPU_label);
 		
 		JComboBox GPU_comboBox = new JComboBox();
-		GPU_comboBox.setBounds(180, 35, 150, 20);
+		GPU_comboBox.setBounds(190, 35, 150, 20);
 		Page.add(GPU_comboBox);
 		
 		String GPU_Combo_query="select GPU¿Ã∏ß from GPU";
 		
 		dbc.addComboBox(GPU_Combo_query,GPU_comboBox);
+		
+		JLabel RAM_label = new JLabel("RAM");
+		RAM_label.setBounds(365, 15, 150, 20);
+		Page.add(RAM_label);
+		
+		JSpinner spinner = new JSpinner();
+		spinner.setBounds(365, 35, 150, 20);
+		Page.add(spinner);
+		
+		RoundedButton btnNewButton = new RoundedButton("Search");
+		btnNewButton.setForeground(Color.WHITE);
+		btnNewButton.setBackground(Color.DARK_GRAY);
+		btnNewButton.setBounds(535, 35, 150, 20);
+		Page.add(btnNewButton);
 		
 		JPanel panel = new JPanel();
 		panel.setBounds(14, 261, 685, 205);
