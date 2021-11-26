@@ -7,6 +7,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 
 import javax.swing.JComboBox;
 import javax.swing.table.DefaultTableModel;
@@ -144,4 +145,47 @@ public class DB_Conn_Query {
 	   }catch(SQLException e) { e.printStackTrace(); }
 	   return DtmStorage;
    }
+   
+   public DefaultTableModel specification_callable(String query, String[] value , String[] column) {
+	   DefaultTableModel DtmStorage;
+		 DtmStorage = new DefaultTableModel(column, 0){
+			public boolean isCellEditable(int row, int column){ // 테이블을 더블클릭할 때 수정여부 설정
+				return false;    // 셀 수정 가능(return true), 불가능 설정(return false)
+			}
+		 };
+		 DtmStorage.setColumnIdentifiers(column);
+	   
+	   try {
+		   CallableStatement cstmt = con.prepareCall(query);
+		   	   
+		   cstmt.setString(1, value[0]);
+		   cstmt.setString(2, value[1]);
+		   cstmt.setString(3, value[2]);
+		   cstmt.setInt(4, Integer.parseInt(value[3]));
+		   cstmt.registerOutParameter(5, Types.VARCHAR);
+		   cstmt.executeQuery();
+		   
+		   String[] getValue = null;
+		   
+		   if(cstmt.getString(5) != null) {
+			   getValue = cstmt.getString(5).split(",");
+
+			   for(int i=0;i<getValue.length;i++) {
+				   String row[] = new String[column.length];
+				   row[0]=getValue[i];
+				   DtmStorage.addRow(row);
+			   }
+		   }else {
+			   String row[] = new String[column.length];
+			   row[0]="사양이 부족합니다.";
+			   DtmStorage.addRow(row);
+		   }
+//		   System.out.println(cstmt.getString(5));
+		   cstmt.close();	
+
+	   }catch(SQLException e) { e.printStackTrace(); }
+	   return DtmStorage;
+   }
+   
+   
 }

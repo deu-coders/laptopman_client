@@ -72,8 +72,10 @@ public class Main extends JFrame{
 		
 		
 		tabbedPane.addTab("Main",mainPage(new JPanel(),dbc));
-		tabbedPane.addTab("다중프로그램적합목록",multipleSpecificationPage(new JPanel(),dbc));
-		tabbedPane.addTab("적합프로그램목록",suitableProgram(new JPanel(),dbc));
+		tabbedPane.addTab("다중프로그램적합목록",multiplesuitablePage(new JPanel(),dbc));
+		tabbedPane.addTab("적합프로그램목록",suitablePage(new JPanel(),dbc));
+		JPanel panel = new JPanel();
+		tabbedPane.addTab("사양판정",specificationPage(panel,dbc));
 		
 	}
 	
@@ -89,6 +91,96 @@ public class Main extends JFrame{
 			columnModel.getColumn(column).setPreferredWidth(width); 
 		} 
 	}
+	
+	public JPanel specificationPage(JPanel Page, DB_Conn_Query dbc) {
+		JTable table= new JTable();
+		
+		Page.setLayout(null);
+		Page.setBackground(Color.WHITE);
+		Page.setBorder(new EmptyBorder(5, 5, 5, 5));
+		
+		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setBounds(14, 142, 685, 324);
+		Page.add(scrollPane);
+		
+		scrollPane.setViewportView(table);
+		
+		JLabel CPU_label = new JLabel("CPU");
+		CPU_label.setBounds(15, 67, 150, 20);
+		Page.add(CPU_label);
+		
+		JComboBox CPU_comboBox = new JComboBox();
+		CPU_comboBox.setBounds(15, 87, 150, 20);
+		Page.add(CPU_comboBox);
+		
+		String CPU_query="select CPU이름 from CPU";
+		
+		dbc.addComboBox(CPU_query,CPU_comboBox);
+		
+		JLabel GPU_label = new JLabel("GPU");
+		GPU_label.setBounds(190, 67, 150, 20);
+		Page.add(GPU_label);
+		
+		JComboBox GPU_comboBox = new JComboBox();
+		GPU_comboBox.setBounds(190, 87, 150, 20);
+		Page.add(GPU_comboBox);
+		
+		String GPU_Combo_query="select GPU이름 from GPU";
+		
+		dbc.addComboBox(GPU_Combo_query,GPU_comboBox);
+		
+		JLabel RAM_label = new JLabel("RAM");
+		RAM_label.setBounds(365, 67, 150, 20);
+		Page.add(RAM_label);
+		
+		JSpinner spinner = new JSpinner();
+		spinner.setBounds(365, 87, 150, 20);
+		spinner.setValue(8192);
+		Page.add(spinner);
+		
+		JLabel Program_label = new JLabel("Program");
+		Program_label.setBounds(14, 15, 150, 20);
+		Page.add(Program_label);
+		
+		JComboBox Program_comboBox = new JComboBox();
+		Program_comboBox.setBounds(14, 35, 150, 20);
+		Page.add(Program_comboBox);
+
+
+		String Program_query="select 프로그램이름 from 프로그램";
+		
+		dbc.addComboBox(Program_query,Program_comboBox);
+		
+		RoundedButton btnNewButton = new RoundedButton("Search");
+		btnNewButton.setForeground(Color.WHITE);
+		btnNewButton.setBackground(Color.DARK_GRAY);
+		btnNewButton.setBounds(547, 87, 150, 20);
+		
+		btnNewButton.addActionListener(new ActionListener(){ //익명클래스로 리스너 작성
+			@Override
+			public void actionPerformed(ActionEvent e){
+//				JOptionPane.showMessageDialog(null, "알림");
+
+				String callable_query ="{call SP_사양판정(?, ?, ?, ?, ?)}";
+				String[] callable_value = new String[] {Program_comboBox.getSelectedItem().toString() , CPU_comboBox.getSelectedItem().toString() , GPU_comboBox.getSelectedItem().toString() , spinner.getValue().toString()};
+				String[] callable_column = new String[] {"적합 사양"};
+				System.out.println(Program_comboBox.getSelectedItem().toString()+",\t"+CPU_comboBox.getSelectedItem().toString()+",\t"+GPU_comboBox.getSelectedItem().toString()+",\t"+spinner.getValue().toString());
+				TableModel model =dbc.specification_callable(callable_query, callable_value, callable_column);
+				table.setModel(model);
+		
+				table.setAutoCreateRowSorter(true);
+				
+				table.setCellSelectionEnabled(rootPaneCheckingEnabled);
+
+				scrollPane.setViewportView(table);
+			}
+		});
+		
+		Page.add(btnNewButton);
+		
+		return Page;
+	}
+	
 	
 	public JPanel mainPage(JPanel Page, DB_Conn_Query dbc) {
 		JTable table;
@@ -125,7 +217,7 @@ public class Main extends JFrame{
 		return Page;
 	}
 	
-	public JPanel suitableProgram(JPanel Page, DB_Conn_Query dbc) {
+	public JPanel suitablePage(JPanel Page, DB_Conn_Query dbc) {
 		Page.setLayout(null);
 		Page.setBackground(Color.WHITE);
 		Page.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -167,6 +259,7 @@ public class Main extends JFrame{
 		
 		JSpinner spinner = new JSpinner();
 		spinner.setBounds(365, 35, 150, 20);
+		spinner.setValue(8192);
 		Page.add(spinner);
 		
 		RoundedButton btnNewButton = new RoundedButton("Search");
@@ -198,7 +291,7 @@ public class Main extends JFrame{
 		return Page;
 	}
 	
-	public JPanel multipleSpecificationPage(JPanel Page,DB_Conn_Query dbc) {
+	public JPanel multiplesuitablePage(JPanel Page,DB_Conn_Query dbc) {
 		JTable table= new JTable();
 		JTable table_1;
 		
