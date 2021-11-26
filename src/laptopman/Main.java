@@ -23,7 +23,7 @@ import javax.swing.JList;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ListDataListener;
 
-public class Main extends JFrame {
+public class Main extends JFrame{
 
 	private JPanel contentPane;
 //	private DefaultTableModel DtmStorage;
@@ -31,21 +31,6 @@ public class Main extends JFrame {
 	/**
 	 * Launch the application.
 	 */
-	public void resizeColumnWidth(JTable table) { 
-		final TableColumnModel columnModel = table.getColumnModel(); 
-		for (int column = 0; column < table.getColumnCount(); column++) { 
-			int width = 50; // Min width 
-			for (int row = 0; row < table.getRowCount(); row++) { 
-				TableCellRenderer renderer = table.getCellRenderer(row, column); 
-				Component comp = table.prepareRenderer(renderer, row, column); 
-				width = Math.max(comp.getPreferredSize().width +1 , width); 
-			} 
-			columnModel.getColumn(column).setPreferredWidth(width); 
-		} 
-	}
-
-	
-	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -58,14 +43,100 @@ public class Main extends JFrame {
 			}
 		});
 	}
+	
+	/**
+	 * Create the frame.
+	 */
+	public Main() {
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 730, 550);
+		contentPane = new JPanel();
+		contentPane.setBackground(Color.WHITE);
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		setContentPane(contentPane);
+		contentPane.setLayout(null);
 		
-	public void suitableProgram(JPanel Page, DB_Conn_Query dbc) {
+		DB_Conn_Query dbc = new DB_Conn_Query();
+		
+		dbc.getAdress(System.getProperty("adress"));
+		dbc.getPort(System.getProperty("port"));
+		dbc.getID(System.getProperty("id"));
+		dbc.getPW(System.getProperty("pw"));
+		dbc.DB_Conn();
+		
+		if (dbc.con == null) return;
+		
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(0, 0, 714, 510);
+		contentPane.add(tabbedPane);
+		
+		
+		tabbedPane.addTab("Main",mainPage(new JPanel(),dbc));
+		tabbedPane.addTab("다중프로그램적합목록",multipleSpecificationPage(new JPanel(),dbc));
+		tabbedPane.addTab("적합프로그램목록",suitableProgram(new JPanel(),dbc));
+		
+	}
+	
+	public void resizeColumnWidth(JTable table) { 
+		final TableColumnModel columnModel = table.getColumnModel(); 
+		for (int column = 0; column < table.getColumnCount(); column++) { 
+			int width = 50; // Min width 
+			for (int row = 0; row < table.getRowCount(); row++) { 
+				TableCellRenderer renderer = table.getCellRenderer(row, column); 
+				Component comp = table.prepareRenderer(renderer, row, column); 
+				width = Math.max(comp.getPreferredSize().width +1 , width); 
+			} 
+			columnModel.getColumn(column).setPreferredWidth(width); 
+		} 
+	}
+	
+	public JPanel mainPage(JPanel Page, DB_Conn_Query dbc) {
 		JTable table;
 		
 		Page.setLayout(null);
 		Page.setBackground(Color.WHITE);
 		Page.setBorder(new EmptyBorder(5, 5, 5, 5));
 		
+	
+		JPanel panel = new JPanel();
+		panel.setBounds(0, 0, 730, 510);
+		panel.setBackground(Color.WHITE);
+		panel.setLayout(new BorderLayout(0, 0));
+		Page.add(panel);
+		
+		JScrollPane scrollPane = new JScrollPane();
+		panel.setBounds(14, 261, 685, 205);
+		panel.add(scrollPane);
+		
+		String query="select * from 제품정보";
+		String[] column = new String[] {"제품정보ID","제품이름","이미지","브랜드","등록일","CPU이름","GPU이름","RAM","운영체제","화면크기","화면비율","해상도","무게"}; // 컬럼 이름 설정
+		int[] type = new int[] {1,1,1,1,3,1,1,2,1,1,1,1,1};
+		
+		table = new JTable(dbc.sqlrun(query,column,type));
+//		table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		
+		table.setAutoCreateRowSorter(true);
+		
+		table.setCellSelectionEnabled(rootPaneCheckingEnabled);
+		resizeColumnWidth(table);
+		
+		scrollPane.setViewportView(table);
+		return Page;
+	}
+	
+	public JPanel suitableProgram(JPanel Page, DB_Conn_Query dbc) {
+		Page.setLayout(null);
+		Page.setBackground(Color.WHITE);
+		Page.setBorder(new EmptyBorder(5, 5, 5, 5));
+		
+		JTable table = new JTable();
+		table.setBounds(14, 90, 685, 375);
+
+		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setBounds(14, 90, 685, 375);
+		Page.add(scrollPane);
+				
 		JLabel label = new JLabel("CPU");
 		label.setBounds(15, 15, 150, 20);
 		Page.add(label);
@@ -102,39 +173,33 @@ public class Main extends JFrame {
 		btnNewButton.setForeground(Color.WHITE);
 		btnNewButton.setBackground(Color.DARK_GRAY);
 		btnNewButton.setBounds(535, 35, 150, 20);
-		Page.add(btnNewButton);
 		
-		JPanel panel = new JPanel();
-		panel.setBounds(14, 261, 685, 205);
-		Page.add(panel);
-		panel.setLayout(new BorderLayout(0, 0));
-		
-		JScrollPane scrollPane = new JScrollPane();
-		panel.add(scrollPane);
-		
-//		String query="select * from CPU";
-//		String[] column = new String[] {"CPU이름", "아키텍쳐", "브랜드", "벤치마크점수", "벤치마크출처" }; // 컬럼 이름 설정
-//		int[] type = new int[] {1,1,1,2,1};
-		
-		String query="select * from 제품정보";
-		String[] column = new String[] {"제품정보ID","제품이름","이미지","브랜드","등록일","CPU이름","GPU이름","RAM","운영체제","화면크기","화면비율","해상도","무게"}; // 컬럼 이름 설정
-		int[] type = new int[] {1,1,1,1,3,1,1,2,1,1,1,1,1};
-		
-		table = new JTable(dbc.sqlrun(query,column,type));
-//		table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
-		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		
-		table.setAutoCreateRowSorter(true);
-		
-		table.setCellSelectionEnabled(rootPaneCheckingEnabled);
-		resizeColumnWidth(table);
-		
-		scrollPane.setViewportView(table);
+		btnNewButton.addActionListener(new ActionListener(){ //익명클래스로 리스너 작성
+			@Override
+			public void actionPerformed(ActionEvent e){
+//				JOptionPane.showMessageDialog(null, "알림");
 
+				String callable_query ="{call SP_적합프로그램목록(?, ?, ?, ?)}";
+				String[] callable_value = new String[] {comboBox.getSelectedItem().toString() , GPU_comboBox.getSelectedItem().toString() , spinner.getValue().toString()};
+				String[] callable_column = new String[] {"프로그램이름","세부사항","적합"};
+				System.out.println(comboBox.getSelectedItem().toString()+",\t"+GPU_comboBox.getSelectedItem().toString()+",\t"+spinner.getValue().toString());
+				TableModel model =dbc.sql_callable(callable_query, callable_value, callable_column);
+				table.setModel(model);
+		
+				table.setAutoCreateRowSorter(true);
+				
+				table.setCellSelectionEnabled(rootPaneCheckingEnabled);
+
+				scrollPane.setViewportView(table);
+			}
+		});
+
+		Page.add(btnNewButton);
+		return Page;
 	}
 	
-	public void specificationPage(JPanel Page,DB_Conn_Query dbc) {
-		JTable table;
+	public JPanel multipleSpecificationPage(JPanel Page,DB_Conn_Query dbc) {
+		JTable table= new JTable();
 		JTable table_1;
 		
 		Page.setLayout(null);
@@ -153,19 +218,7 @@ public class Main extends JFrame {
 //		String[] column = new String[] {"CPU이름", "아키텍쳐", "브랜드", "벤치마크점수", "벤치마크출처" }; // 컬럼 이름 설정
 //		int[] type = new int[] {1,1,1,2,1};
 		
-		String query="select * from 제품정보";
-		String[] column = new String[] {"제품정보ID","제품이름","이미지","브랜드","등록일","CPU이름","GPU이름","RAM","운영체제","화면크기","화면비율","해상도","무게"}; // 컬럼 이름 설정
-		int[] type = new int[] {1,1,1,1,3,1,1,2,1,1,1,1,1};
-		
-		table = new JTable(dbc.sqlrun(query,column,type));
-//		table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
-		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		
-		table.setAutoCreateRowSorter(true);
-		
-		table.setCellSelectionEnabled(rootPaneCheckingEnabled);
-		resizeColumnWidth(table);
-		
+
 		scrollPane.setViewportView(table);
 		
 		JList list = new JList();
@@ -183,11 +236,15 @@ public class Main extends JFrame {
 		
 		table_1 = new JTable();
 		
-		String CPU_query="select * from 프로그램사양";
-		String[] CPU_column = new String[] {"프로그램사양ID","프로그램이름","세부사항","CPU이름","GPU이름","RAM"}; // 컬럼 이름 설정
-		int[] CPU_type = new int[] {2,1,1,1,1,2};
+//		String Program_query="select * from 프로그램사양";
+//		String[] Program_column = new String[] {"프로그램사양ID","프로그램이름","세부사항","CPU이름","GPU이름","RAM"}; // 컬럼 이름 설정
+//		int[] Program_type = new int[] {2,1,1,1,1,2};
 		
-		table_1 = new JTable(dbc.sqlrun(CPU_query,CPU_column,CPU_type));
+		String Program_query="select * from 프로그램";
+		String[] Program_column = new String[] {"프로그램이름","프로그램설명","아이콘"}; // 컬럼 이름 설정
+		int[] Program_type = new int[] {1,1,1};
+		
+		table_1 = new JTable(dbc.sqlrun(Program_query,Program_column,Program_type));
 		table_1.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 		
 		table_1.setAutoCreateRowSorter(true);
@@ -214,7 +271,7 @@ public class Main extends JFrame {
                     int i = t.rowAtPoint(pt);
                     if(i>=0) {
                         int row = t.convertRowIndexToModel(i);
-                        String s = String.format("%s (%s)", m.getValueAt(row, 0), m.getValueAt(row, 1));
+                        String s = String.format("%s", m.getValueAt(row, 0));
 //                        JOptionPane.showMessageDialog(t, s, "title", JOptionPane.INFORMATION_MESSAGE);
                         
                         boolean overlapCheck=false;
@@ -229,6 +286,7 @@ public class Main extends JFrame {
                         	listModel.addElement(s);
                     }
                 }
+               
             }
         });
 		
@@ -243,46 +301,7 @@ public class Main extends JFrame {
 		        } 
 		    }
 		});
-	}
-	
-	/**
-	 * Create the frame.
-	 */
-	public Main() {
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 730, 550);
-		contentPane = new JPanel();
-		contentPane.setBackground(Color.WHITE);
-		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		setContentPane(contentPane);
-		contentPane.setLayout(null);
 		
-		DB_Conn_Query dbc = new DB_Conn_Query();
-		
-		dbc.getAdress(System.getProperty("adress"));
-		dbc.getPort(System.getProperty("port"));
-		dbc.getID(System.getProperty("id"));
-		dbc.getPW(System.getProperty("pw"));
-		dbc.DB_Conn();
-		
-		if (dbc.con == null) return;
-		
-		
-		
-		
-		JPanel suitableProgram = new JPanel();
-		
-		createTabbedPane Pane = new createTabbedPane();
-		Pane.addTab("메인",new JPanel());
-		Pane.addTab("사양 체크",new JPanel());
-		Pane.addTab("적합 프로그램 목록",suitableProgram);
-		
-		specificationPage(Pane.getPanel(1),dbc);
-		suitableProgram(Pane.getPanel(2),dbc);
-		
-		JTabbedPane tabbedPane = Pane.getPane();
-		tabbedPane.setBounds(0, 0, 730, 510);
-		contentPane.add(tabbedPane);
-		
+		 return Page;
 	}
 }

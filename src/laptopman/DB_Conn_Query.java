@@ -1,5 +1,6 @@
 package laptopman;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 //import java.sql.PreparedStatement;
@@ -15,6 +16,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import oracle.jdbc.OracleTypes;
 import oracle.sql.DATE;
 
 
@@ -23,6 +25,7 @@ public class DB_Conn_Query {
 	private String Port ;
 	private String ID ;
 	private String PW ;
+	Connection con = null;
 	
 	public void getAdress(String Adress) {
 		this.Adress=Adress;
@@ -39,7 +42,7 @@ public class DB_Conn_Query {
 	public void getPW(String PW) {
 		this.PW=PW;
 	}
-	Connection con = null;
+	
 //	PreparedStatement pstmt = null;
 	
    public void DB_Conn() {
@@ -104,4 +107,41 @@ public class DB_Conn_Query {
 		    stmt.close();    rs.close();     //con.close();
 		   }catch (SQLException e) { e.printStackTrace(); }
 	}
+   
+   public DefaultTableModel sql_callable(String query, String[] value , String[] column) {
+	   DefaultTableModel DtmStorage;
+		 DtmStorage = new DefaultTableModel(column, 0){
+			public boolean isCellEditable(int row, int column){ // 테이블을 더블클릭할 때 수정여부 설정
+				return false;    // 셀 수정 가능(return true), 불가능 설정(return false)
+			}
+		 };
+		 DtmStorage.setColumnIdentifiers(column);
+	   
+	   try {
+		   CallableStatement cstmt = con.prepareCall(query);
+		   	   
+		   cstmt.setString(1, value[0]);
+		   cstmt.setString(2, value[1]);
+		   cstmt.setInt(3, Integer.parseInt(value[2]));
+		   cstmt.registerOutParameter(4, OracleTypes.CURSOR);
+		   cstmt.executeQuery();
+		   
+		   ResultSet rs =(ResultSet)cstmt.getObject(4);
+		   
+		   while(rs.next()) {
+			   String row[] = new String[column.length];
+			   for(int i=0;i<column.length;i++) {
+				   if(rs.getString(i+1) != null)
+		   				row[i] = rs.getString(i+1).trim();
+		   			else
+		   				row[i] = rs.getString(i+1);
+			   }
+			   DtmStorage.addRow(row);
+//			   System.out.println(rs.getString(1)+",\t"+rs.getString(2)+",\t"+rs.getString(3));
+		   }
+		   cstmt.close();	
+		   rs.close();	
+	   }catch(SQLException e) { e.printStackTrace(); }
+	   return DtmStorage;
+   }
 }
