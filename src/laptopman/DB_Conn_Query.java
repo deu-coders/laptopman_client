@@ -186,6 +186,4 @@ public class DB_Conn_Query {
 	   }catch(SQLException e) { e.printStackTrace(); }
 	   return DtmStorage;
    }
-   
-   
 }

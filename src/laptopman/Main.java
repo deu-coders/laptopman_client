@@ -2,46 +2,74 @@ package laptopman;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalTime;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.*;
-
-import java.awt.BorderLayout;
-import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JList;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ListDataListener;
 
-public class Main extends JFrame{
 
-	private JPanel contentPane;
-//	private DefaultTableModel DtmStorage;
+public class Main extends JFrame{
 	
 	/**
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					Main frame = new Main();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+		Loading loading = new Loading();
+
+		try {
+			System.out.println("Loading");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		CompletableFuture<Boolean> future= new CompletableFuture<>();
+		
+		Executors.newCachedThreadPool().submit(() -> {
+			try {
+				Main frame = new Main();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
+		    future.complete(true);
+		    return null;
 		});
+
+		try {
+			if(future.get()==true)
+				loading.setVisible(false);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+//		try {
+//			Main frame = new Main();
+//			frame.setVisible(true);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 	}
 	
 	/**
@@ -50,11 +78,6 @@ public class Main extends JFrame{
 	public Main() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 730, 550);
-		contentPane = new JPanel();
-		contentPane.setBackground(Color.WHITE);
-		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		setContentPane(contentPane);
-		contentPane.setLayout(null);
 		
 		DB_Conn_Query dbc = new DB_Conn_Query();
 		
@@ -65,18 +88,29 @@ public class Main extends JFrame{
 		dbc.DB_Conn();
 		
 		if (dbc.con == null) return;
+
+		var contentPane = new JPanel();
+		contentPane.setBackground(Color.WHITE);
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		contentPane.setLayout(null);
+		setContentPane(contentPane);
 		
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.setBounds(0, 0, 714, 510);
-		contentPane.add(tabbedPane);
-		
-		
-		tabbedPane.addTab("Main",mainPage(new JPanel(),dbc));
-		tabbedPane.addTab("다중프로그램적합목록",multiplesuitablePage(new JPanel(),dbc));
-		tabbedPane.addTab("적합프로그램목록",suitablePage(new JPanel(),dbc));
-		JPanel panel = new JPanel();
-		tabbedPane.addTab("사양판정",specificationPage(panel,dbc));
-		
+		var tabs = new JTabbedPane(JTabbedPane.TOP);
+		tabs.setBounds(0, 0, 714, 510);
+		tabs.addTab("Main",mainPage(new JPanel(),dbc));
+		tabs.addTab("다중프로그램적합목록",multiplesuitablePage(new JPanel(),dbc));
+		tabs.addTab("적합프로그램목록",suitablePage(new JPanel(),dbc));
+		tabs.addTab("사양판정",specificationPage(new JPanel(),dbc));
+
+		contentPane.add(tabs);
+
+		Dimension frameSize = getSize();
+		Dimension windowSize = Toolkit.getDefaultToolkit().getScreenSize();
+
+		//설정할 위치에 (윈도우width-프레임width)/2, (윈도우height-프레임height)/2를 입력한다
+		setLocation((windowSize.width - frameSize.width) / 2,(windowSize.height - frameSize.height) / 2);
+		setVisible(true);
+		toFront();
 	}
 	
 	public void resizeColumnWidth(JTable table) { 
@@ -180,7 +214,19 @@ public class Main extends JFrame{
 		
 		return Page;
 	}
-	
+
+	// https://icarus8050.tistory.com/32
+    public BufferedImage resizeImage(BufferedImage inputImage, int width, int height)
+            throws IOException {
+        BufferedImage outputImage =
+                new BufferedImage(width, height, inputImage.getType());
+
+        Graphics2D graphics2D = outputImage.createGraphics();
+        graphics2D.drawImage(inputImage, 0, 0, width, height, null);
+        graphics2D.dispose();
+
+        return outputImage;
+    }
 	
 	public JPanel mainPage(JPanel Page, DB_Conn_Query dbc) {
 		JTable table;
@@ -197,7 +243,7 @@ public class Main extends JFrame{
 		Page.add(panel);
 		
 		JScrollPane scrollPane = new JScrollPane();
-		panel.setBounds(14, 261, 685, 205);
+		panel.setBounds(14, 61, 685, 405);
 		panel.add(scrollPane);
 		
 		String query="select * from 제품정보";
@@ -213,6 +259,34 @@ public class Main extends JFrame{
 		table.setCellSelectionEnabled(rootPaneCheckingEnabled);
 		resizeColumnWidth(table);
 		
+		table.setRowHeight(60);
+		var tableColumn = table.getColumn("이미지");
+		tableColumn.setMaxWidth(60);
+		tableColumn.setMinWidth(60);
+		
+		// https://stackoverflow.com/questions/4941372/how-to-insert-image-into-jtable-cell
+		tableColumn.setCellRenderer(new DefaultTableCellRenderer() {
+			@Override
+			public void setValue(Object value) {
+				if (value == null) {
+					setText("");
+				}
+				else {
+					URL url = null;
+					BufferedImage img = null;
+					
+					try {
+						url = new URL((String) value);
+						img = ImageIO.read(url);
+
+						setIcon(new ImageIcon(resizeImage(img, 60, 60)));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+
 		scrollPane.setViewportView(table);
 		return Page;
 	}
