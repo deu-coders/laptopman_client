@@ -13,6 +13,7 @@ import java.sql.Types;
 
 import javax.swing.JComboBox;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -88,6 +89,57 @@ public class DB_Conn_Query {
 	   }
    }
    
+   public String get_delete_query(String table_name,int row,TableModel m) {
+	   ResultSet rs = get_pk(table_name);
+       int index=0;
+       String[] query = null ;
+       try {
+       	
+       	query = new String[2];
+			while(rs.next()) { 
+				String colName = rs.getString("COLUMN_NAME"); 
+				int keySeq = rs.getInt("KEY_SEQ"); 
+				query[index]=colName+"='"+m.getValueAt(row, keySeq-1)+"'";
+					
+//   			String pkName = rs.getString("PK_NAME");
+//				System.out.println(colName); 
+//				System.out.println(keySeq); 
+//   			System.out.println(pkName); 
+				index++;
+			}
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+       String querys = "DELETE FROM "+table_name+" WHERE ";
+       if(index>1)
+       	querys+=String.join(" AND ", query);
+       else
+       	querys+=query[0];
+       
+       return querys;
+   }
+   
+   public void delete_data(String query) throws SQLException {
+	   DB_Connect();
+	   Statement stmt = null;
+	   
+	   
+	   stmt = con.createStatement();
+	   stmt.executeUpdate(query);
+	   con.close();
+   }
+   
+   public ResultSet get_pk(String table_name) {
+	   DB_Connect();
+	   ResultSet rs = null;
+	   try {
+		rs = con.getMetaData().getPrimaryKeys(null, null, table_name);
+	} catch (SQLException e) {
+		e.printStackTrace();
+	}
+	   return rs;
+   }
+   
    public String[] get_column(String table_name) {
 	   String[] column = null;
 	   DB_Connect();
@@ -108,6 +160,13 @@ public class DB_Conn_Query {
         }
 	} catch (SQLException e) {
 		e.printStackTrace();
+	}finally{
+		try {
+			con.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	   return column;
@@ -178,8 +237,7 @@ public class DB_Conn_Query {
 			   }
 		 }
 		pstmt.executeUpdate();
-		System.out.println("insert ¼º°ø");
-	
+		con.close();
    }
    
    public DefaultTableModel sqlrun(String query,String[] column, int[] type)

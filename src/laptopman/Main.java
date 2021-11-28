@@ -156,15 +156,15 @@ public class Main extends JFrame{
 		tabs.setBounds(12, 206, 685, 262);
 		tabs.addTab("insert",insert_Page(dbc));
 		tabs.addTab("delete",delete_Page(dbc));
-		tabs.addTab("update",update_Page(dbc));
-		
+//		tabs.addTab("update",update_Page(dbc));
+		tabs.setVisible(false);
 		Page.add(tabs);
 		
 		btnNewButton.addActionListener(new ActionListener(){ //익명클래스로 리스너 작성
 			@Override
 			public void actionPerformed(ActionEvent e){
 				if(dbc.manager_Login(ID_textField.getText().toString(),PW_textField.getText().toString())) {
-					tabs.setVisible(false);
+					tabs.setVisible(true);
 				}
 			}
 		});
@@ -172,14 +172,14 @@ public class Main extends JFrame{
 		return Page;
 	}
 	
-	public JPanel update_Page(DB_Conn_Query dbc) {
-		JPanel management = new JPanel();
-		management.setLayout(null);
-		management.setBounds(12, 206, 685, 262);
-		management.setBackground(Color.WHITE);
-		
-		return management;
-	}
+//	public JPanel update_Page(DB_Conn_Query dbc) {
+//		JPanel management = new JPanel();
+//		management.setLayout(null);
+//		management.setBounds(12, 206, 685, 262);
+//		management.setBackground(Color.WHITE);
+//		
+//		return management;
+//	}
 	
 	public JPanel delete_Page(DB_Conn_Query dbc) {
 		JPanel management = new JPanel();
@@ -187,8 +187,135 @@ public class Main extends JFrame{
 		management.setBounds(12, 206, 685, 262);
 		management.setBackground(Color.WHITE);
 		
+		JLabel Table_label = new JLabel("Table");
+		Table_label.setBounds(12, 12, 150, 20);
+		management.add(Table_label);
+		
+		JComboBox Table_comboBox = new JComboBox();
+		Table_comboBox.setBounds(12, 32, 150, 20);
+		management.add(Table_comboBox);
+		
+		String Table_query="select TABLE_NAME from USER_TABLES";
+		
+		dbc.addComboBox(Table_query,Table_comboBox);
+		
+		JLabel Data_label = new JLabel("Data");
+		Data_label.setBounds(12, 68, 150, 20);
+		management.add(Data_label);
+		
+		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setBounds(12, 90, 661, 130);
+		management.add(scrollPane);
+		
+		RoundedButton deleteButton = new RoundedButton();
+		deleteButton.setText("Delete");
+		deleteButton.setForeground(Color.WHITE);
+		deleteButton.setBackground(Color.DARK_GRAY);
+		deleteButton.setBounds(518, 14, 150, 56);
+		management.add(deleteButton);
+		
+		deleteButton.addActionListener(new ActionListener(){ //익명클래스로 리스너 작성
+			@Override
+			public void actionPerformed(ActionEvent e){
+				JViewport viewport = scrollPane.getViewport(); 
+				JTable table = (JTable)viewport.getView();
+				int[] Row = table.getSelectedRows();
+				
+				TableModel m = table.getModel();
+				String table_name = Table_comboBox.getSelectedItem().toString();
+				
+				for(int i=0;i<Row.length;i++) {
+
+                    String querys = dbc.get_delete_query(table_name,Row[i],m);
+                    
+                    try {
+						dbc.delete_data(querys);
+//						JOptionPane.showMessageDialog(null, "Delete Success");
+						System.out.println("Delete Success");
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+//						JOptionPane.showMessageDialog(null, "Delete Error"+e1,"ERROR_MESSAGE", JOptionPane.ERROR_MESSAGE);
+						System.out.println("Delete Error"+e1);
+					}
+                    
+//                    ((DefaultTableModel) m).removeRow(Row[i]);
+				}
+				
+			}
+		});
+		
+		Table_comboBox.addItemListener(new ItemListener() {
+			@Override
+		    public void itemStateChanged(ItemEvent event) {
+		       if (event.getStateChange() == ItemEvent.SELECTED) {
+		          Object item = event.getItem();
+		          // do something with object
+		          String query="select * from "+Table_comboBox.getSelectedItem().toString();
+		  		String[] column = dbc.get_column(Table_comboBox.getSelectedItem().toString()); // 컬럼 이름 설정
+		  		int[] type = dbc.get_type(Table_comboBox.getSelectedItem().toString());
+		  		
+		  		JTable table = new JTable(dbc.sqlrun(query,column,type));
+		  		table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
+//		  		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		  		
+		  		table.setAutoCreateRowSorter(true);
+		  		
+		  		table.setCellSelectionEnabled(rootPaneCheckingEnabled);
+		  		
+		  		resizeColumnWidth(table);
+		  		
+		  		scrollPane.setViewportView(table);
+		  		
+		  		table.addMouseListener(new MouseAdapter() {
+		            @Override public void mouseClicked(MouseEvent e) {
+		                JTable t = (JTable)e.getSource();
+		                if(e.getClickCount()==2) {
+		                    TableModel m = t.getModel();
+		                    Point pt = e.getPoint();
+		                    
+		                    int i = t.rowAtPoint(pt);
+		                    int row = t.convertRowIndexToModel(i);
+		                    String table_name = Table_comboBox.getSelectedItem().toString();
+		                   
+		                    String querys = dbc.get_delete_query(table_name,row,m);
+		                    
+		                    try {
+								dbc.delete_data(querys);
+								JOptionPane.showMessageDialog(null, "Delete Success");
+							} catch (SQLException e1) {
+								e1.printStackTrace();
+								JOptionPane.showMessageDialog(null, "Delete Error"+e1,"ERROR_MESSAGE", JOptionPane.ERROR_MESSAGE);
+							}
+		                    
+		                    ((DefaultTableModel) m).removeRow(row);
+		                    
+//		                    String s = String.format("%s", m.getValueAt(row, 0));
+//		                        JOptionPane.showMessageDialog(t, s, "title", JOptionPane.INFORMATION_MESSAGE);
+
+		                }
+		               
+		            }
+		        });
+		  		
+		       }
+		    }  
+		});
+		
+		Table_comboBox.setSelectedIndex(1);
+		
+//		JViewport viewport = scrollPane.getViewport(); 
+//		JTable mytable = (JTable)viewport.getView();
+		
+		
+		
 		return management;
 	}
+	
+	
+	static boolean isStringEmpty(String str) {
+		return str == null || str.isBlank();
+	}
+
 	
 	public JPanel insert_Page(DB_Conn_Query dbc) {
 		
@@ -218,34 +345,45 @@ public class Main extends JFrame{
 		management.add(Data_label);
 		
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(12, 90, 661, 50);
+		scrollPane.setBounds(12, 90, 661, 130);
 		management.add(scrollPane);
 		
 		RoundedButton insertButton = new RoundedButton();
 		insertButton.setText("Insert");
 		insertButton.setForeground(Color.WHITE);
 		insertButton.setBackground(Color.DARK_GRAY);
-		insertButton.setBounds(12, 164, 150, 56);
+		insertButton.setBounds(518, 14, 150, 56);
 		management.add(insertButton);
 		
 		insertButton.addActionListener(new ActionListener(){ //익명클래스로 리스너 작성
 			@Override
 			public void actionPerformed(ActionEvent e){
 				String[] column=dbc.get_column(Table_comboBox.getSelectedItem().toString());
-				String[] row = new String[column.length];
-				
+				Boolean success=false;
 				JViewport viewport = scrollPane.getViewport(); 
 				JTable mytable = (JTable)viewport.getView();
-				for(int i=0;i<column.length;i++) {
-					row[i]=(String) mytable.getModel().getValueAt(0, i);
-				}
+				for(int j=0;j<5;j++) {
+					if(isStringEmpty((String)mytable.getModel().getValueAt(j, 0)))
+						break;
+					
+					String[] row = new String[column.length];
+					
+					for(int i=0;i<column.length;i++) {
+						row[i]=(String) mytable.getModel().getValueAt(j, i);
+					}
 				
-				try {
-					dbc.insert_data(Table_comboBox.getSelectedItem().toString(), row);
-					JOptionPane.showMessageDialog(null, "Insert Success");
-				}catch(Exception e1) {
-					JOptionPane.showMessageDialog(null, "Insert Error");
+					try {
+						dbc.insert_data(Table_comboBox.getSelectedItem().toString(), row);
+						success=true;
+					}catch(Exception e1) {
+						JOptionPane.showMessageDialog(null, "Insert Error : "+e1,"ERROR_MESSAGE", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
 				}
+				if(success)
+					JOptionPane.showMessageDialog(null, "Insert Success");
+				else
+					JOptionPane.showMessageDialog(null, "Insert Error : 데이터를 입력해주세요","ERROR_MESSAGE", JOptionPane.ERROR_MESSAGE);
 			}
 		});
 		
@@ -267,15 +405,16 @@ public class Main extends JFrame{
 		 			}
 		 		 };
 		 		 DtmStorage.setColumnIdentifiers(column);
-		 		 DtmStorage.addRow(new String[column.length]);
+		 		 for(int i=0;i<5;i++)
+		 			 DtmStorage.addRow(new String[column.length]);
 
 		 		JTable insert_table = new JTable(DtmStorage);
 		 		
-		 		insert_table.setAutoCreateRowSorter(true);
+		 		insert_table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
 				
 				insert_table.setCellSelectionEnabled(rootPaneCheckingEnabled);
 				
-				insert_table.setRowHeight(scrollPane.getHeight()-25);
+				insert_table.setRowHeight((scrollPane.getHeight()-25)/5);
 				
 				scrollPane.setViewportView(insert_table);
 		       }
