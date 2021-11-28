@@ -21,8 +21,10 @@ import java.util.concurrent.Executors;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.ListDataListener;
 
 
@@ -44,6 +46,7 @@ public class Main extends JFrame{
 		
 		Executors.newCachedThreadPool().submit(() -> {
 			try {
+				System.out.println("Main");
 				Main frame = new Main();
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -74,8 +77,9 @@ public class Main extends JFrame{
 	
 	/**
 	 * Create the frame.
+	 * @throws SQLException 
 	 */
-	public Main() {
+	public Main()  {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 730, 550);
 		
@@ -87,8 +91,6 @@ public class Main extends JFrame{
 		dbc.getPW(System.getProperty("pw"));
 		dbc.DB_Conn();
 		
-		if (dbc.con == null) return;
-
 		var contentPane = new JPanel();
 		contentPane.setBackground(Color.WHITE);
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -101,7 +103,9 @@ public class Main extends JFrame{
 		tabs.addTab("다중프로그램적합목록",multiplesuitablePage(new JPanel(),dbc));
 		tabs.addTab("적합프로그램목록",suitablePage(new JPanel(),dbc));
 		tabs.addTab("사양판정",specificationPage(new JPanel(),dbc));
-
+		JPanel panel = new JPanel();
+		tabs.addTab("관리자",managerPage(panel,dbc));
+		
 		contentPane.add(tabs);
 
 		Dimension frameSize = getSize();
@@ -111,6 +115,176 @@ public class Main extends JFrame{
 		setLocation((windowSize.width - frameSize.width) / 2,(windowSize.height - frameSize.height) / 2);
 		setVisible(true);
 		toFront();
+	}
+	
+	public JPanel managerPage(JPanel Page, DB_Conn_Query dbc) {
+		
+		
+		Page.setBackground(Color.WHITE);
+		Page.setBorder(new EmptyBorder(5, 5, 5, 5));
+		Page.setLayout(null);
+
+		Border blackline = BorderFactory.createTitledBorder("Login");
+		
+		JPanel login = new JPanel();
+		login.setLayout(null);
+		login.setBounds(221, 48, 278, 123);
+		login.setBackground(Color.WHITE);
+		login.setBorder(blackline);
+		Page.add(login);
+		
+		JTextField ID_textField = new JTextField("LAPTOPMAN_TEST");
+		ID_textField.setBounds(33, 39, 114, 22);
+		login.add(ID_textField);
+		ID_textField.setColumns(10);
+		
+		JPasswordField PW_textField = new JPasswordField("!@ehddmleo");
+		PW_textField.setBounds(33, 73, 114, 22);
+		login.add(PW_textField);
+		PW_textField.setColumns(10);
+		
+		RoundedButton btnNewButton = new RoundedButton();
+		btnNewButton.setText("Login");
+		btnNewButton.setForeground(Color.WHITE);
+		btnNewButton.setBackground(Color.DARK_GRAY);
+		btnNewButton.setBounds(162, 39, 84, 56);
+		login.add(btnNewButton);
+		
+		
+		
+		var tabs = new JTabbedPane(JTabbedPane.TOP);
+		tabs.setBounds(12, 206, 685, 262);
+		tabs.addTab("insert",insert_Page(dbc));
+		tabs.addTab("delete",delete_Page(dbc));
+		tabs.addTab("update",update_Page(dbc));
+		
+		Page.add(tabs);
+		
+		btnNewButton.addActionListener(new ActionListener(){ //익명클래스로 리스너 작성
+			@Override
+			public void actionPerformed(ActionEvent e){
+				if(dbc.manager_Login(ID_textField.getText().toString(),PW_textField.getText().toString())) {
+					tabs.setVisible(false);
+				}
+			}
+		});
+		
+		return Page;
+	}
+	
+	public JPanel update_Page(DB_Conn_Query dbc) {
+		JPanel management = new JPanel();
+		management.setLayout(null);
+		management.setBounds(12, 206, 685, 262);
+		management.setBackground(Color.WHITE);
+		
+		return management;
+	}
+	
+	public JPanel delete_Page(DB_Conn_Query dbc) {
+		JPanel management = new JPanel();
+		management.setLayout(null);
+		management.setBounds(12, 206, 685, 262);
+		management.setBackground(Color.WHITE);
+		
+		return management;
+	}
+	
+	public JPanel insert_Page(DB_Conn_Query dbc) {
+		
+//		Border management_border = BorderFactory.createTitledBorder("Management");
+		
+		JPanel management = new JPanel();
+		management.setLayout(null);
+		management.setBounds(12, 206, 685, 262);
+		management.setBackground(Color.WHITE);
+//		management.setBorder(management_border);
+//		Page.add(management);
+		
+		JLabel Table_label = new JLabel("Table");
+		Table_label.setBounds(12, 12, 150, 20);
+		management.add(Table_label);
+		
+		JComboBox Table_comboBox = new JComboBox();
+		Table_comboBox.setBounds(12, 32, 150, 20);
+		management.add(Table_comboBox);
+		
+		String Table_query="select TABLE_NAME from USER_TABLES";
+		
+		dbc.addComboBox(Table_query,Table_comboBox);
+		
+		JLabel Data_label = new JLabel("Data");
+		Data_label.setBounds(12, 68, 150, 20);
+		management.add(Data_label);
+		
+		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setBounds(12, 90, 661, 50);
+		management.add(scrollPane);
+		
+		RoundedButton insertButton = new RoundedButton();
+		insertButton.setText("Insert");
+		insertButton.setForeground(Color.WHITE);
+		insertButton.setBackground(Color.DARK_GRAY);
+		insertButton.setBounds(12, 164, 150, 56);
+		management.add(insertButton);
+		
+		insertButton.addActionListener(new ActionListener(){ //익명클래스로 리스너 작성
+			@Override
+			public void actionPerformed(ActionEvent e){
+				String[] column=dbc.get_column(Table_comboBox.getSelectedItem().toString());
+				String[] row = new String[column.length];
+				
+				JViewport viewport = scrollPane.getViewport(); 
+				JTable mytable = (JTable)viewport.getView();
+				for(int i=0;i<column.length;i++) {
+					row[i]=(String) mytable.getModel().getValueAt(0, i);
+				}
+				
+				try {
+					dbc.insert_data(Table_comboBox.getSelectedItem().toString(), row);
+					JOptionPane.showMessageDialog(null, "Insert Success");
+				}catch(Exception e1) {
+					JOptionPane.showMessageDialog(null, "Insert Error");
+				}
+			}
+		});
+		
+		
+		Table_comboBox.addItemListener(new ItemListener() {
+			@Override
+		    public void itemStateChanged(ItemEvent event) {
+		       if (event.getStateChange() == ItemEvent.SELECTED) {
+		          Object item = event.getItem();
+		          // do something with object
+		          dbc.get_column(item.toString());
+		          
+		          String[] column= dbc.get_column(item.toString());// 컬럼 이름 설정
+		  		
+		 	   	 
+		          DefaultTableModel DtmStorage = new DefaultTableModel(column, 0){
+		 			public boolean isCellEditable(int row, int column){ // 테이블을 더블클릭할 때 수정여부 설정
+		 				return true;    // 셀 수정 가능(return true), 불가능 설정(return false)
+		 			}
+		 		 };
+		 		 DtmStorage.setColumnIdentifiers(column);
+		 		 DtmStorage.addRow(new String[column.length]);
+
+		 		JTable insert_table = new JTable(DtmStorage);
+		 		
+		 		insert_table.setAutoCreateRowSorter(true);
+				
+				insert_table.setCellSelectionEnabled(rootPaneCheckingEnabled);
+				
+				insert_table.setRowHeight(scrollPane.getHeight()-25);
+				
+				scrollPane.setViewportView(insert_table);
+		       }
+		    }  
+		});
+		
+		Table_comboBox.setSelectedIndex(1);
+		
+		return management;
 	}
 	
 	public void resizeColumnWidth(JTable table) { 
@@ -199,7 +373,8 @@ public class Main extends JFrame{
 				String[] callable_value = new String[] {Program_comboBox.getSelectedItem().toString() , CPU_comboBox.getSelectedItem().toString() , GPU_comboBox.getSelectedItem().toString() , spinner.getValue().toString()};
 				String[] callable_column = new String[] {"적합 사양"};
 				System.out.println(Program_comboBox.getSelectedItem().toString()+",\t"+CPU_comboBox.getSelectedItem().toString()+",\t"+GPU_comboBox.getSelectedItem().toString()+",\t"+spinner.getValue().toString());
-				TableModel model =dbc.specification_callable(callable_query, callable_value, callable_column);
+				TableModel model = dbc.specification_callable(callable_query, callable_value, callable_column);
+
 				table.setModel(model);
 		
 				table.setAutoCreateRowSorter(true);
@@ -243,7 +418,7 @@ public class Main extends JFrame{
 		Page.add(panel);
 		
 		JScrollPane scrollPane = new JScrollPane();
-		panel.setBounds(14, 61, 685, 405);
+		panel.setBounds(14, 160, 685, 305);
 		panel.add(scrollPane);
 		
 		String query="select * from 제품정보";
@@ -350,7 +525,8 @@ public class Main extends JFrame{
 				String[] callable_value = new String[] {comboBox.getSelectedItem().toString() , GPU_comboBox.getSelectedItem().toString() , spinner.getValue().toString()};
 				String[] callable_column = new String[] {"프로그램이름","세부사항","적합"};
 				System.out.println(comboBox.getSelectedItem().toString()+",\t"+GPU_comboBox.getSelectedItem().toString()+",\t"+spinner.getValue().toString());
-				TableModel model =dbc.sql_callable(callable_query, callable_value, callable_column);
+				TableModel model = model = dbc.sql_callable(callable_query, callable_value, callable_column);
+
 				table.setModel(model);
 		
 				table.setAutoCreateRowSorter(true);

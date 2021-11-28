@@ -3,8 +3,10 @@ package laptopman;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 //import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -46,20 +48,143 @@ public class DB_Conn_Query {
 	
 //	PreparedStatement pstmt = null;
 	
+	public Boolean manager_Login(String manager_id,String manager_pw) {
+		String url = String.format("jdbc:oracle:thin:@%s:%s:XE", this.Adress,this.Port);
+		try { 
+			   con = DriverManager.getConnection(url, manager_id, manager_pw);
+		   		System.out.println("관리자 로그인 성공");
+		   		return true;
+		   } 
+		   catch (SQLException e) { 
+			   System.out.println("관리자 Connection Fail"); 
+			   return false;
+		   }
+		finally { 
+			try {
+				con.close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	
    public void DB_Conn() {
-	     String url = String.format("jdbc:oracle:thin:@%s:%s:XE", Adress,Port);
-	     String id = ID;      String password = PW;
-	     try {   Class.forName("oracle.jdbc.driver.OracleDriver");
-	        System.out.println("드라이버 적재 성공");
-	        con = DriverManager.getConnection(url, id, password);
-	        System.out.println("DB 연결 성공");
-	     } 
-	     catch (ClassNotFoundException e) {         System.out.println("No Driver.");    }
-	     catch (SQLException e) {         System.out.println("Connection Fail");      }
-	     
+	   try { Class.forName("oracle.jdbc.driver.OracleDriver");
+	   System.out.println("드라이버 적재 성공");
+	   } catch (ClassNotFoundException e) { System.out.println("No Driver."); }
    }
+   
+   private void DB_Connect() {
+	   String url = String.format("jdbc:oracle:thin:@%s:%s:XE", Adress,Port);
+	   String id = ID;      String password = PW;
+	   try { 
+		   con = DriverManager.getConnection(url, id, password);
+	   		System.out.println("DB 연결 성공");
+	   } 
+	   catch (SQLException e) { 
+		   System.out.println("Connection Fail"); 
+	   }
+   }
+   
+   public String[] get_column(String table_name) {
+	   String[] column = null;
+	   DB_Connect();
+	   String sql = "SELECT * FROM ";
+	   Statement stmt;
+	   ResultSet rs;
+	   ResultSetMetaData rsmd; 
+	try {
+		stmt = con.createStatement();
+		rs = stmt.executeQuery(sql+table_name);
+		rsmd = rs.getMetaData();
+		int cols = rsmd.getColumnCount();
+		column = new String[cols];
+		for(int i = 1; i<=cols; i++){
+			column[i-1]=rsmd.getColumnName(i).toString();
+//			column[i-1]=rsmd.getColumnName(i).toString()+"("+rsmd.getColumnTypeName(i).toString()+")";
+//            System.out.println(rsmd.getColumnName(i)+"\t\t");
+        }
+	} catch (SQLException e) {
+		e.printStackTrace();
+	}
+
+	   return column;
+   }
+   
+   public int[] get_type(String table_name) {
+	   int[] type = null;
+	   switch(table_name) {
+	   		case "CPU":
+	   			type=new int[]{1,1,1,2,1};
+	   		break;
+	   		case "GPU":
+	   			type=new int[]{1,1,2,1};
+	   		break;
+	   		case "운영체제":
+	   			type=new int[]{1};
+	   		break;
+	   		case "제품별가능한프로그램":
+	   			type=new int[]{1,2};
+	   		break;
+	   		case "제품옵션":
+	   			type=new int[]{1,1,1,2};
+	   		break;
+	   		case "제품정보":
+	   			type=new int[]{1,1,1,2};
+	   		break;
+	   		case "프로그램":
+	   			type=new int[]{1,1,1};
+	   		break;
+	   		case "프로그램사양":
+	   			type=new int[]{2,1,1,1,1,2};
+	   		break;
+	   		case "프로그램지원운영체제":
+	   			type=new int[]{1,1};
+	   		break;
+	   }
+	   return type;
+   }
+   
+   public void insert_data(String table_name, String[] column) throws SQLException {
+	   DB_Connect();
+	   String[] Q_mark=new String[column.length];
+	   int[] type=get_type(table_name);
+	   
+	   for(int i=0;i<Q_mark.length;i++)
+		   Q_mark[i]="?";
+//	   Q_mark.repeat(column.length);
+	   String Q_marks=String.join(",", Q_mark);
+	   
+	   
+		PreparedStatement pstmt = con.prepareStatement(String.format("insert into %s values(%s)", table_name, Q_marks));
+		for(int i=0;i<type.length;i++) {
+			   switch (type[i]) {
+			   		case 1: 
+			   			pstmt.setString(i+1,column[i]);
+			   			break;
+			   		case 2: 
+			   			pstmt.setInt(i+1, Integer.parseInt(column[i]));
+			   			break;
+			   		case 3: 
+			   			SimpleDateFormat transFormat = new SimpleDateFormat("yyyy-MM-dd");
+						try {
+							pstmt.setDate(i+1, (java.sql.Date) transFormat.parse(column[i]));
+						} catch (ParseException e) {
+							e.printStackTrace();
+						}
+						break;
+			   }
+		 }
+		pstmt.executeUpdate();
+		System.out.println("insert 성공");
+	
+   }
+   
    public DefaultTableModel sqlrun(String query,String[] column, int[] type)
    {
+	   	 DB_Connect();
 	   	 DefaultTableModel DtmStorage;
 		 DtmStorage = new DefaultTableModel(column, 0){
 			public boolean isCellEditable(int row, int column){ // 테이블을 더블클릭할 때 수정여부 설정
@@ -94,10 +219,17 @@ public class DB_Conn_Query {
 			   }
 		    stmt.close();    rs.close();     //con.close();
 		   }catch (SQLException e) { e.printStackTrace(); }
+		   finally { try {
+			con.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} }
 		   return DtmStorage;
    }
    
-   public void addComboBox(String query, JComboBox comboBox) {
+   public void addComboBox(String query, JComboBox comboBox)  {
+	    DB_Connect();
 		try {
 			   Statement stmt = con.createStatement();
 			   ResultSet rs = stmt.executeQuery(query);
@@ -107,9 +239,16 @@ public class DB_Conn_Query {
 			   }
 		    stmt.close();    rs.close();     //con.close();
 		   }catch (SQLException e) { e.printStackTrace(); }
+		 finally { try {
+			con.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} }
 	}
    
    public DefaultTableModel sql_callable(String query, String[] value , String[] column) {
+	   DB_Connect();
 	   DefaultTableModel DtmStorage;
 		 DtmStorage = new DefaultTableModel(column, 0){
 			public boolean isCellEditable(int row, int column){ // 테이블을 더블클릭할 때 수정여부 설정
@@ -143,10 +282,17 @@ public class DB_Conn_Query {
 		   cstmt.close();	
 		   rs.close();	
 	   }catch(SQLException e) { e.printStackTrace(); }
+	   finally { try {
+		con.close();
+	} catch (SQLException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	} }
 	   return DtmStorage;
    }
    
    public DefaultTableModel specification_callable(String query, String[] value , String[] column) {
+	   DB_Connect();
 	   DefaultTableModel DtmStorage;
 		 DtmStorage = new DefaultTableModel(column, 0){
 			public boolean isCellEditable(int row, int column){ // 테이블을 더블클릭할 때 수정여부 설정
@@ -184,6 +330,12 @@ public class DB_Conn_Query {
 		   cstmt.close();	
 
 	   }catch(SQLException e) { e.printStackTrace(); }
+	   finally { try {
+		con.close();
+	} catch (SQLException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	} }
 	   return DtmStorage;
    }
 }
