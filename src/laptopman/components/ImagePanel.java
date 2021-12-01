@@ -1,4 +1,4 @@
-package laptopman;
+package laptopman.components;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Toolkit;

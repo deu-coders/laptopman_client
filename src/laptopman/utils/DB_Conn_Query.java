@@ -1,5 +1,6 @@
-package laptopman;
-
+package laptopman.utils;
+import java.sql.*;
+import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -18,6 +19,7 @@ import javax.swing.table.TableModel;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import oracle.jdbc.OracleTypes;
@@ -30,6 +32,10 @@ public class DB_Conn_Query {
 	private String ID ;
 	private String PW ;
 	Connection con = null;
+	
+	public Connection getCon() {
+		return con;
+	}
 	
 	public void getAdress(String Adress) {
 		this.Adress=Adress;
@@ -89,6 +95,8 @@ public class DB_Conn_Query {
 	   }
    }
    
+   
+   
    public String get_delete_query(String table_name,int row,TableModel m) {
 	   ResultSet rs = get_pk(table_name);
        int index=0;
@@ -100,11 +108,6 @@ public class DB_Conn_Query {
 				String colName = rs.getString("COLUMN_NAME"); 
 				int keySeq = rs.getInt("KEY_SEQ"); 
 				query[index]=colName+"='"+m.getValueAt(row, keySeq-1)+"'";
-					
-//   			String pkName = rs.getString("PK_NAME");
-//				System.out.println(colName); 
-//				System.out.println(keySeq); 
-//   			System.out.println(pkName); 
 				index++;
 			}
 		} catch (SQLException e1) {
@@ -119,13 +122,15 @@ public class DB_Conn_Query {
        return querys;
    }
    
-   public void delete_data(String query) throws SQLException {
+   public void delete_data(String[] querys) throws SQLException {
 	   DB_Connect();
 	   Statement stmt = null;
-	   
+	   con.setAutoCommit(false);
 	   
 	   stmt = con.createStatement();
-	   stmt.executeUpdate(query);
+	   for(String query : querys)
+		   stmt.executeUpdate(query);
+	   con.commit();
 	   con.close();
    }
    
@@ -191,7 +196,7 @@ public class DB_Conn_Query {
 	   			type=new int[]{1,1,1,2};
 	   		break;
 	   		case "제품정보":
-	   			type=new int[]{1,1,1,2};
+	   			type=new int[]{1,1,1,1,3,1,1,2,1,1,1,1,1};
 	   		break;
 	   		case "프로그램":
 	   			type=new int[]{1,1,1};
@@ -206,38 +211,48 @@ public class DB_Conn_Query {
 	   return type;
    }
    
-   public void insert_data(String table_name, String[] column) throws SQLException {
+   public void insert_data(String table_name, ArrayList<String[]> columns) throws SQLException {
 	   DB_Connect();
-	   String[] Q_mark=new String[column.length];
-	   int[] type=get_type(table_name);
+	   con.setAutoCommit(false);
+	   PreparedStatement pstmt=null;
+
 	   
-	   for(int i=0;i<Q_mark.length;i++)
-		   Q_mark[i]="?";
-//	   Q_mark.repeat(column.length);
-	   String Q_marks=String.join(",", Q_mark);
+		   String[] Q_mark=new String[columns.get(0).length];
+		   int[] type=get_type(table_name);
+		   
+		   for(int i=0;i<Q_mark.length;i++)
+			   Q_mark[i]="?";
+
+		   String Q_marks=String.join(",", Q_mark);
 	   
-	   
-		PreparedStatement pstmt = con.prepareStatement(String.format("insert into %s values(%s)", table_name, Q_marks));
-		for(int i=0;i<type.length;i++) {
-			   switch (type[i]) {
-			   		case 1: 
-			   			pstmt.setString(i+1,column[i]);
-			   			break;
-			   		case 2: 
-			   			pstmt.setInt(i+1, Integer.parseInt(column[i]));
-			   			break;
-			   		case 3: 
-			   			SimpleDateFormat transFormat = new SimpleDateFormat("yyyy-MM-dd");
-						try {
-							pstmt.setDate(i+1, (java.sql.Date) transFormat.parse(column[i]));
-						} catch (ParseException e) {
-							e.printStackTrace();
-						}
-						break;
-			   }
-		 }
-		pstmt.executeUpdate();
-		con.close();
+			pstmt = con.prepareStatement(String.format("insert into %s values(%s)", table_name, Q_marks));
+			
+		   for(String[] column :  columns) {
+			   for(int i=0;i<type.length;i++) {
+				   switch (type[i]) {
+				   		case 1: 
+				   			pstmt.setString(i+1,column[i]);
+				   			break;
+				   		case 2: 
+				   			pstmt.setInt(i+1, Integer.parseInt(column[i]));
+				   			break;
+				   		case 3: 
+				   			SimpleDateFormat transFormat = new SimpleDateFormat("yyyy-MM-dd");
+							try {
+								pstmt.setDate(i+1, (java.sql.Date) transFormat.parse(column[i]));
+							} catch (ParseException e) {
+								e.printStackTrace();
+							}
+							break;
+				   }
+			 }
+			pstmt.addBatch();
+            // 파라미터 Clear
+            pstmt.clearParameters() ;
+	   }
+	   pstmt.executeBatch();
+	   con.commit();
+	   con.close();
    }
    
    public DefaultTableModel sqlrun(String query,String[] column, int[] type)
@@ -268,7 +283,7 @@ public class DB_Conn_Query {
 					   			row[i] = Integer.toString(rs.getInt(i+1));
 			   					break;
 					   		case 3: 
-				   				DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+				   				DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
 				   				row[i] = dateFormat.format(rs.getDate(i+1));
 				   				break;
 					   }
@@ -295,14 +310,15 @@ public class DB_Conn_Query {
 			   while (rs.next()) {
 				   comboBox.addItem(rs.getString(1));
 			   }
-		    stmt.close();    rs.close();     //con.close();
+		    stmt.close();    
+		    rs.close();    
 		   }catch (SQLException e) { e.printStackTrace(); }
 		 finally { try {
 			con.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} }
+		
 	}
    
    public DefaultTableModel sql_callable(String query, String[] value , String[] column) {
@@ -344,6 +360,55 @@ public class DB_Conn_Query {
 		con.close();
 	} catch (SQLException e) {
 		// TODO Auto-generated catch block
+		e.printStackTrace();
+	} }
+	   return DtmStorage;
+   }
+   
+   public DefaultTableModel multiplesuitable_callable(String query, String value , String[] column) {
+	   DB_Connect();
+
+	   DefaultTableModel DtmStorage;
+		 DtmStorage = new DefaultTableModel(column, 0){
+			public boolean isCellEditable(int row, int column){ // 테이블을 더블클릭할 때 수정여부 설정
+				return false;    // 셀 수정 가능(return true), 불가능 설정(return false)
+			}
+		 };
+		 DtmStorage.setColumnIdentifiers(column);
+
+	   try {
+
+		   CallableStatement cstmt = con.prepareCall(query);
+
+		   cstmt.setString(1,value);
+		   cstmt.registerOutParameter(2, OracleTypes.CURSOR);
+		   cstmt.executeQuery();
+
+		   ResultSet rs =(ResultSet)cstmt.getObject(2);
+
+		   while(rs.next()) {
+			   String row[] = new String[column.length];
+			   for(int i=0;i<column.length;i++) {
+				   if(i==column.length-1||i==0) {
+					   row[i] = Integer.toString(rs.getInt(i+1));
+					   continue;
+				   }
+				   
+				   if(rs.getString(i+1) != null)
+		   				row[i] = rs.getString(i+1).trim();
+		   			else
+		   				row[i] = rs.getString(i+1);
+				   System.out.println(row[i]);
+			   }
+			   DtmStorage.addRow(row);
+//			   System.out.println(rs.getString(1)+",\t"+rs.getString(2)+",\t"+rs.getString(3));
+		   }
+		   cstmt.close();	
+		   rs.close();	
+	   }catch(SQLException e) { e.printStackTrace(); }
+	   finally { try {
+		con.close();
+	} catch (SQLException e) {
 		e.printStackTrace();
 	} }
 	   return DtmStorage;

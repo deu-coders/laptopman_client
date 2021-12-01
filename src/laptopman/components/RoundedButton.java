@@ -1,4 +1,4 @@
-package laptopman;
+package laptopman.components;
 
 import javax.swing.Action;
 import javax.swing.Icon;

@@ -11,24 +11,27 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+
+import laptopman.components.ImagePanel;
+
 import java.awt.Dimension;
 
 import java.awt.Toolkit;
 import java.net.URL;
 import java.awt.Image;
 
-public class Loading extends JFrame {
+public class LoadingWindow extends JFrame {
 
 	private JPanel contentPane;
 	
 	public static void main(String[] args) {
-		new Loading();
+		new LoadingWindow();
 	}
 
 	/**
 	 * Create the frame.
 	 */
-	public Loading() {
+	public LoadingWindow() {
 		setResizable(false); // 크기 변경 불가능하도록 함
 		setUndecorated(true); // 프레임의 타이틀바를 없앰
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
